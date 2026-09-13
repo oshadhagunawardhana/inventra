@@ -127,31 +127,33 @@ Before running Inventra, make sure the following software is installed:
 
 ---
 
+---
+
 ## Screenshots
 
 ### Login
-![Inventra Login](screenshots_login.png)
+![Inventra Login](screenshots/login.png)
 
 ### Dashboard
-![Inventra Dashboard](screenshots_dashboard-main.png)
+![Inventra Dashboard](screenshots/dashboard-main.png)
 
 ### Dashboard Details
-![Inventra Dashboard Details](screenshots_dashboard-details.png)
+![Inventra Dashboard Details](screenshots/dashboard-details.png)
 
 ### Products
-![Inventra Products](screenshots_products.png)
+![Inventra Products](screenshots/products.png)
 
 ### New Sale
-![Inventra New Sale](screenshots_new-sale.png)
+![Inventra New Sale](screenshots/new-sale.png)
 
 ### Invoice
-![Inventra Invoice](screenshots_invoice.png)
+![Inventra Invoice](screenshots/invoice.png)
 
 ### Reports Overview
-![Inventra Reports Overview](screenshots_reports-overview.png)
+![Inventra Reports Overview](screenshots/reports-overview.png)
 
 ### Reports Details
-![Inventra Reports Details](screenshots_reports-details.png)
+![Inventra Reports Details](screenshots/reports-details.png)
 
 ## Installation
 
