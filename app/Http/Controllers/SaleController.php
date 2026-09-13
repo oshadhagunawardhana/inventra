@@ -2,21 +2,45 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Customer;
 use App\Models\Product;
 use App\Models\Sale;
-use App\Models\SaleItem;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class SaleController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $sales = Sale::with('items.product')
+        $search = $request->get('search');
+
+        $sales = Sale::with(['customer', 'items.product'])
+            ->when($search, function ($query, $search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('invoice_number', 'like', "%{$search}%")
+                        ->orWhere('customer_name', 'like', "%{$search}%")
+                        ->orWhere('payment_method', 'like', "%{$search}%");
+                });
+            })
             ->orderBy('id', 'asc')
             ->get();
 
-        return view('sales.index', compact('sales'));
+        $searchSuggestions = Sale::orderBy('id', 'asc')
+            ->get()
+            ->map(function ($sale) {
+                return [
+                    'invoice' => $sale->invoice_number,
+                    'customer' => $sale->customer_name ?? 'Walk-in Customer',
+                    'payment' => $sale->payment_method,
+                ];
+            });
+
+        return view('sales.index', compact(
+            'sales',
+            'search',
+            'searchSuggestions'
+        ));
     }
 
     public function create()
@@ -25,93 +49,212 @@ class SaleController extends Controller
             ->orderBy('name')
             ->get();
 
-        return view('sales.create', compact('products'));
+        $customers = Customer::orderBy('name')
+            ->get();
+
+        return view('sales.create', compact(
+            'products',
+            'customers'
+        ));
     }
 
     public function store(Request $request)
-{
-    $validated = $request->validate([
-        'customer_name' => ['nullable', 'string', 'max:255'],
-        'payment_method' => ['required', 'in:cash,card,bank_transfer'],
-        'product_id' => ['required', 'array', 'min:1'],
-        'product_id.*' => ['required', 'exists:products,id'],
-        'quantity' => ['required', 'array', 'min:1'],
-        'quantity.*' => ['required', 'integer', 'min:1'],
-    ]);
+    {
+        $validated = $request->validate([
+            'customer_id' => [
+                'nullable',
+                'exists:customers,id',
+            ],
 
-    if (count($validated['product_id']) !== count($validated['quantity'])) {
-        return back()
-            ->withErrors(['product_id' => 'Invalid sale items.'])
-            ->withInput();
-    }
+            'payment_method' => [
+    'required',
+    'in:cash,card,bank_transfer',
+],
 
-    DB::transaction(function () use ($validated) {
+            'product_id' => [
+                'required',
+                'array',
+                'min:1',
+            ],
 
-        $sale = Sale::create([
-            'invoice_number' => 'INV-' . now()->format('YmdHis') . '-' . random_int(100, 999),
-            'customer_name' => $validated['customer_name'] ?? null,
-            'total_amount' => 0,
-            'payment_method' => $validated['payment_method'],
+            'product_id.*' => [
+                'required',
+                'exists:products,id',
+            ],
+
+            'quantity' => [
+                'required',
+                'array',
+                'min:1',
+            ],
+
+            'quantity.*' => [
+                'required',
+                'integer',
+                'min:1',
+            ],
         ]);
 
-        $totalAmount = 0;
+        $lowStockProducts = [];
+        $outOfStockProducts = [];
 
-        foreach ($validated['product_id'] as $index => $productId) {
+        DB::transaction(function () use (
+            $validated,
+            &$lowStockProducts,
+            &$outOfStockProducts
+        ) {
+            $customer = null;
 
-            $quantity = $validated['quantity'][$index];
-
-            $product = Product::where('id', $productId)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if ($quantity > $product->quantity) {
-                throw \Illuminate\Validation\ValidationException::withMessages([
-                    'quantity' => "Not enough stock for {$product->name}. Available: {$product->quantity}",
-                ]);
+            if (!empty($validated['customer_id'])) {
+                $customer = Customer::find(
+                    $validated['customer_id']
+                );
             }
 
-            $unitPrice = $product->selling_price;
-            $subtotal = $unitPrice * $quantity;
+            do {
+                $invoiceNumber =
+                    'INV-' .
+                    now('Asia/Colombo')->format('YmdHis') .
+                    '-' .
+                    random_int(100, 999);
+            } while (
+                Sale::where(
+                    'invoice_number',
+                    $invoiceNumber
+                )->exists()
+            );
 
-            SaleItem::create([
-                'sale_id' => $sale->id,
-                'product_id' => $product->id,
-                'quantity' => $quantity,
-                'unit_price' => $unitPrice,
-                'subtotal' => $subtotal,
+            $sale = Sale::create([
+                'invoice_number' => $invoiceNumber,
+
+                'customer_id' => $customer?->id,
+
+                'customer_name' => $customer?->name,
+
+                'total_amount' => 0,
+
+                'payment_method' =>
+                    $validated['payment_method'],
             ]);
 
-            $product->decrement('quantity', $quantity);
+            $totalAmount = 0;
 
-            $totalAmount += $subtotal;
-        }
+            foreach (
+                $validated['product_id']
+                as $index => $productId
+            ) {
+                $quantity =
+                    (int) $validated['quantity'][$index];
 
-        $sale->update([
-            'total_amount' => $totalAmount,
-        ]);
-    });
+                $product = Product::where(
+                    'id',
+                    $productId
+                )
+                    ->lockForUpdate()
+                    ->firstOrFail();
 
-    return redirect()
-        ->route('sales.index')
-        ->with('success', 'Sale recorded successfully.');
-}
+                if ($quantity > $product->quantity) {
+                    throw ValidationException::withMessages([
+                        'quantity' =>
+                            "Not enough stock for {$product->name}. " .
+                            "Available: {$product->quantity}",
+                    ]);
+                }
+
+                $unitPrice =
+                    (float) $product->selling_price;
+
+                $subtotal =
+                    $unitPrice * $quantity;
+
+                $sale->items()->create([
+                    'product_id' => $product->id,
+
+                    'quantity' => $quantity,
+
+                    'unit_price' => $unitPrice,
+
+                    'subtotal' => $subtotal,
+                ]);
+
+                $product->decrement(
+                    'quantity',
+                    $quantity
+                );
+
+                $product->refresh();
+
+                if ($product->quantity === 0) {
+                    $outOfStockProducts[] =
+                        $product->name;
+                } elseif (
+                    $product->quantity <=
+                    $product->low_stock_level
+                ) {
+                    $lowStockProducts[] =
+                        $product->name;
+                }
+
+                $totalAmount += $subtotal;
+            }
+
+            $sale->update([
+                'total_amount' => $totalAmount,
+            ]);
+        });
+
+        return redirect()
+            ->route('sales.index')
+            ->with(
+                'success',
+                'Sale created successfully!'
+            )
+            ->with(
+                'low_stock_products',
+                array_values(
+                    array_unique($lowStockProducts)
+                )
+            )
+            ->with(
+                'out_of_stock_products',
+                array_values(
+                    array_unique($outOfStockProducts)
+                )
+            );
+    }
 
     public function show(Sale $sale)
-{
-    $sale->load('items.product');
+    {
+        $sale->load([
+            'customer',
+            'items.product',
+        ]);
 
-    return view('sales.show', compact('sale'));
-}
+        return view(
+            'sales.show',
+            compact('sale')
+        );
+    }
 
     public function destroy(Sale $sale)
     {
         DB::transaction(function () use ($sale) {
-
             $sale->load('items');
 
             foreach ($sale->items as $item) {
-                Product::where('id', $item->product_id)
-                    ->increment('quantity', $item->quantity);
+                $product = Product::where(
+                    'id',
+                    $item->product_id
+                )
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($product) {
+                    $product->increment(
+                        'quantity',
+                        $item->quantity
+                    );
+                }
             }
 
             $sale->delete();
@@ -119,6 +262,9 @@ class SaleController extends Controller
 
         return redirect()
             ->route('sales.index')
-            ->with('success', 'Sale deleted and stock restored.');
+            ->with(
+                'success',
+                'Sale deleted successfully!'
+            );
     }
 }

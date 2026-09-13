@@ -7,11 +7,33 @@ use Illuminate\Http\Request;
 
 class CategoryController extends Controller
 {
-    public function index()
+    public function index(Request $request)
 {
-    $categories = Category::orderBy('id', 'asc')->get();
+    $search = $request->get('search');
 
-    return view('categories.index', compact('categories'));
+    $categories = Category::when($search, function ($query, $search) {
+        $query->where(function ($q) use ($search) {
+            $q->where('name', 'like', "%{$search}%")
+              ->orWhere('description', 'like', "%{$search}%");
+        });
+    })
+    ->orderBy('id', 'asc')
+    ->get();
+
+    $searchSuggestions = Category::orderBy('name')
+        ->get()
+        ->map(function ($category) {
+            return [
+                'name' => $category->name,
+                'description' => $category->description ?? '',
+            ];
+        });
+
+    return view('categories.index', compact(
+        'categories',
+        'search',
+        'searchSuggestions'
+    ));
 }
 
     public function create()

@@ -9,14 +9,40 @@ use Illuminate\Validation\Rule;
 
 class ProductController extends Controller
 {
-    public function index()
-    {
-        $products = Product::with('category')
-    ->orderBy('id', 'asc')
-    ->get();
+    public function index(Request $request)
+{
+    $search = $request->get('search');
 
-        return view('products.index', compact('products'));
-    }
+    $products = Product::with('category')
+        ->when($search, function ($query, $search) {
+            $query->where(function ($q) use ($search) {
+                $q->where('name', 'like', "%{$search}%")
+                  ->orWhere('sku', 'like', "%{$search}%")
+                  ->orWhereHas('category', function ($categoryQuery) use ($search) {
+                      $categoryQuery->where('name', 'like', "%{$search}%");
+                  });
+            });
+        })
+        ->orderBy('id', 'asc')
+        ->get();
+
+    $searchSuggestions = Product::with('category')
+        ->orderBy('name')
+        ->get()
+        ->map(function ($product) {
+            return [
+                'name' => $product->name,
+                'sku' => $product->sku,
+                'category' => $product->category->name ?? '',
+            ];
+        });
+
+    return view('products.index', compact(
+        'products',
+        'search',
+        'searchSuggestions'
+    ));
+}
 
     public function create()
     {

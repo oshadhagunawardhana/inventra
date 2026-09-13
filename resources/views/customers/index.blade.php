@@ -5,15 +5,15 @@
 <div class="d-flex justify-content-between align-items-center mb-4">
 
     <h2 class="mb-0">
-        Products
+        Customers
     </h2>
 
     <a
-        href="{{ route('products.create') }}"
+        href="{{ route('customers.create') }}"
         class="btn btn-primary"
     >
         <i class="bi bi-plus-lg me-1"></i>
-        Add Product
+        Add Customer
     </a>
 
 </div>
@@ -32,9 +32,9 @@
 
 
         <form
-            action="{{ route('products.index') }}"
+            action="{{ route('customers.index') }}"
             method="GET"
-            id="productSearchForm"
+            id="customerSearchForm"
             class="mb-4"
         >
 
@@ -43,15 +43,15 @@
                 <input
                     type="text"
                     name="search"
-                    id="productSearch"
+                    id="customerSearch"
                     class="form-control"
-                    placeholder="Search by product name, SKU or category..."
+                    placeholder="Search by name, phone or email..."
                     value="{{ $search ?? '' }}"
                     autocomplete="off"
                 >
 
                 <div
-                    id="productSuggestions"
+                    id="customerSuggestions"
                     class="list-group position-absolute w-100 shadow-sm"
                     style="z-index: 1000; display: none;"
                 ></div>
@@ -69,13 +69,10 @@
 
                     <tr>
                         <th>#</th>
-                        <th>Product</th>
-                        <th>Category</th>
-                        <th>SKU</th>
-                        <th>Cost</th>
-                        <th>Selling</th>
-                        <th>Stock</th>
-                        <th>Status</th>
+                        <th>Name</th>
+                        <th>Phone</th>
+                        <th>Email</th>
+                        <th>Address</th>
                         <th style="width: 190px;">
                             Actions
                         </th>
@@ -86,7 +83,7 @@
 
                 <tbody>
 
-                    @forelse($products as $product)
+                    @forelse($customers as $customer)
 
                         <tr>
 
@@ -95,66 +92,25 @@
                             </td>
 
                             <td class="fw-semibold">
-                                {{ $product->name }}
+                                {{ $customer->name }}
                             </td>
 
                             <td>
-                                {{ $product->category->name ?? '—' }}
+                                {{ $customer->phone ?: '—' }}
                             </td>
 
                             <td>
-                                {{ $product->sku }}
+                                {{ $customer->email ?: '—' }}
                             </td>
 
                             <td>
-                                Rs.
-                                {{ number_format($product->cost_price, 2) }}
+                                {{ $customer->address ?: '—' }}
                             </td>
-
-                            <td>
-                                Rs.
-                                {{ number_format($product->selling_price, 2) }}
-                            </td>
-
-                            <td>
-                                {{ $product->quantity }}
-                            </td>
-
-                            <td>
-
-                                @if($product->quantity == 0)
-
-                                    <span class="badge bg-danger">
-                                        Out of Stock
-                                    </span>
-
-                                @elseif(
-                                    $product->quantity <=
-                                    $product->low_stock_level
-                                )
-
-                                    <span
-    class="badge"
-    style="background: #f59e0b; color: white;"
->
-    Low Stock
-</span>
-
-                                @else
-
-                                    <span class="badge bg-success">
-                                        In Stock
-                                    </span>
-
-                                @endif
-
-                            </td>
-
 
                             <td>
 
                                 <a
-                                    href="{{ route('products.edit', $product) }}"
+                                    href="{{ route('customers.edit', $customer) }}"
                                     class="btn btn-warning btn-sm"
                                 >
                                     <i class="bi bi-pencil-square"></i>
@@ -163,14 +119,14 @@
 
 
                                 <form
-                                    action="{{ route('products.destroy', $product) }}"
+                                    action="{{ route('customers.destroy', $customer) }}"
                                     method="POST"
                                     class="d-inline"
 
                                     data-confirm
-                                    data-confirm-title="Delete Product?"
-                                    data-confirm-message="Are you sure you want to delete {{ $product->name }}?"
-                                    data-confirm-button="Delete Product"
+                                    data-confirm-title="Delete Customer?"
+                                    data-confirm-message="Are you sure you want to delete {{ $customer->name }}?"
+                                    data-confirm-button="Delete Customer"
                                     data-confirm-type="danger"
                                 >
                                     @csrf
@@ -195,10 +151,10 @@
                         <tr>
 
                             <td
-                                colspan="9"
+                                colspan="6"
                                 class="text-center text-muted py-4"
                             >
-                                No products found.
+                                No customers found.
                             </td>
 
                         </tr>
@@ -220,16 +176,18 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     const input =
-        document.getElementById('productSearch');
+        document.getElementById(
+            'customerSearch'
+        );
 
     const suggestionBox =
         document.getElementById(
-            'productSuggestions'
+            'customerSuggestions'
         );
 
     const form =
         document.getElementById(
-            'productSearchForm'
+            'customerSearchForm'
         );
 
     const suggestions =
@@ -262,7 +220,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 ) {
 
                     window.location.href =
-                        "{{ route('products.index') }}";
+                        "{{ route('customers.index') }}";
                 }
 
                 return;
@@ -278,11 +236,11 @@ document.addEventListener('DOMContentLoaded', function () {
                                 .toLowerCase()
                                 .includes(value)
                             ||
-                            (item.sku || '')
+                            (item.phone || '')
                                 .toLowerCase()
                                 .includes(value)
                             ||
-                            (item.category || '')
+                            (item.email || '')
                                 .toLowerCase()
                                 .includes(value)
                         );
@@ -319,11 +277,11 @@ document.addEventListener('DOMContentLoaded', function () {
                         '</strong>' +
                         '<br>' +
                         '<small class="text-muted">' +
-                        (item.sku || '') +
+                        (item.phone || '') +
                         (
-                            item.category
+                            item.email
                                 ? ' • ' +
-                                  item.category
+                                  item.email
                                 : ''
                         ) +
                         '</small>';
@@ -347,12 +305,14 @@ document.addEventListener('DOMContentLoaded', function () {
                     suggestionBox.appendChild(
                         button
                     );
+
                 }
             );
 
 
             suggestionBox.style.display =
                 'block';
+
         }
     );
 

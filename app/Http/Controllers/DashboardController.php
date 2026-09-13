@@ -26,6 +26,38 @@ class DashboardController extends Controller
         ->take(5)
         ->get();
 
+    $startDate = now('Asia/Colombo')
+    ->subDays(6)
+    ->startOfDay();
+
+$salesForChart = \App\Models\Sale::where(
+    'created_at',
+    '>=',
+    $startDate->copy()->utc()
+)->get();
+
+$salesByDate = $salesForChart
+    ->groupBy(function ($sale) {
+        return $sale->created_at
+            ->timezone('Asia/Colombo')
+            ->format('Y-m-d');
+    })
+    ->map(function ($sales) {
+        return $sales->sum('total_amount');
+    });
+
+$chartLabels = collect();
+$chartData = collect();
+
+for ($i = 0; $i < 7; $i++) {
+    $date = $startDate->copy()->addDays($i);
+
+    $dateKey = $date->format('Y-m-d');
+
+    $chartLabels->push($date->format('M d'));
+    $chartData->push($salesByDate->get($dateKey, 0));
+}
+
     return view('dashboard', compact(
         'totalCategories',
         'totalProducts',
@@ -34,7 +66,9 @@ class DashboardController extends Controller
         'totalSales',
         'totalRevenue',
         'recentSales',
-        'lowStockList'
+        'lowStockList',
+        'chartLabels',
+        'chartData'
     ));
 }
 }

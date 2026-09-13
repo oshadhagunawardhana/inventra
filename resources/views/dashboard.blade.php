@@ -12,8 +12,20 @@
     <div class="card stat-card">
         <div class="card-body">
             <h6 class="text-muted">Total Sales</h6>
-            <h2>{{ $totalSales }}</h2>
+            <h3 class="count-up" data-target="{{ $totalSales }}">0</h3>
         </div>
+    </div>
+</div>
+
+<div class="card stat-card mt-4 mb-4">
+    <div class="card-body">
+
+        <h5 class="mb-3">Sales - Last 7 Days</h5>
+
+        <div style="height: 320px;">
+            <canvas id="salesChart"></canvas>
+        </div>
+
     </div>
 </div>
 
@@ -122,7 +134,13 @@
     <div class="card stat-card">
         <div class="card-body">
             <h6 class="text-muted">Total Revenue</h6>
-            <h2>Rs. {{ number_format($totalRevenue, 2) }}</h2>
+            <h3>
+    Rs. <span
+        class="count-up"
+        data-target="{{ $totalRevenue }}"
+        data-decimals="2"
+    >0.00</span>
+</h3>
         </div>
     </div>
 </div>
@@ -131,7 +149,7 @@
         <div class="card stat-card">
             <div class="card-body">
                 <h6 class="text-muted">Total Categories</h6>
-                <h2>{{ $totalCategories }}</h2>
+                <h3 class="count-up" data-target="{{ $totalCategories }}">0</h3>
             </div>
         </div>
     </div>
@@ -140,7 +158,7 @@
         <div class="card stat-card">
             <div class="card-body">
                 <h6 class="text-muted">Total Products</h6>
-                <h2>{{ $totalProducts }}</h2>
+                <h3 class="count-up" data-target="{{ $totalProducts }}">0</h3>
             </div>
         </div>
     </div>
@@ -149,7 +167,7 @@
         <div class="card stat-card">
             <div class="card-body">
                 <h6 class="text-muted">Total Stock</h6>
-                <h2>{{ $totalStock }}</h2>
+                <h3 class="count-up" data-target="{{ $totalStock }}">0</h3>
             </div>
         </div>
     </div>
@@ -158,11 +176,74 @@
         <div class="card stat-card">
             <div class="card-body">
                 <h6 class="text-muted">Low Stock Products</h6>
-                <h2>{{ $lowStockProducts }}</h2>
+                <h3 class="count-up" data-target="{{ $lowStockProducts }}">0</h3>
             </div>
         </div>
     </div>
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    const salesChartCanvas = document.getElementById('salesChart');
+
+    const chartLabels = @json($chartLabels);
+    const chartData = @json($chartData);
+    const ctx = salesChartCanvas.getContext('2d');
+
+const gradient = ctx.createLinearGradient(0, 0, 0, 320);
+
+gradient.addColorStop(0, 'rgba(13, 110, 253, 0.35)');
+gradient.addColorStop(1, 'rgba(13, 110, 253, 0.02)');
+
+    new Chart(salesChartCanvas, {
+        type: 'line',
+
+        data: {
+            labels: chartLabels,
+
+            datasets: [{
+    label: 'Sales Revenue (Rs.)',
+    data: chartData,
+
+    borderColor: '#0d6efd',
+    backgroundColor: gradient,
+
+    pointBackgroundColor: '#0d6efd',
+    pointBorderColor: '#ffffff',
+    pointBorderWidth: 2,
+    pointRadius: 5,
+    pointHoverRadius: 7,
+
+    borderWidth: 3,
+    tension: 0.4,
+    fill: true
+}]
+        },
+
+        options: {
+    responsive: true,
+    maintainAspectRatio: false,
+
+    plugins: {
+        legend: {
+            labels: {
+                usePointStyle: true,
+                pointStyle: 'line',
+                boxWidth: 40,
+                boxHeight: 2
+            }
+        }
+    },
+
+    scales: {
+        y: {
+            beginAtZero: true
+        }
+    }
+}
+    });
+</script>
 
 @endsection
