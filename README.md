@@ -130,4 +130,4 @@ Before running Inventra, make sure the following software is installed:
 Clone the repository:
 
 ```bash
-git clone https://github.com/YOUR-USERNAME/inventra.git
+git clone https://github.com/oshadhagunawardhana/inventra.git
