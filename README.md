@@ -125,6 +125,34 @@ Before running Inventra, make sure the following software is installed:
 
 ---
 
+---
+
+## Screenshots
+
+### Login
+![Inventra Login](screenshots/login.png)
+
+### Dashboard
+![Inventra Dashboard](screenshots/dashboard-main.png)
+
+### Dashboard Details
+![Inventra Dashboard Details](screenshots/dashboard-details.png)
+
+### Products
+![Inventra Products](screenshots/products.png)
+
+### New Sale
+![Inventra New Sale](screenshots/new-sale.png)
+
+### Invoice
+![Inventra Invoice](screenshots/invoice.png)
+
+### Reports Overview
+![Inventra Reports Overview](screenshots/reports-overview.png)
+
+### Reports Details
+![Inventra Reports Details](screenshots/reports-details.png)
+
 ## Installation
 
 Clone the repository:
