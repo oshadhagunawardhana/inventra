@@ -1,14 +1,14 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-
 use App\Http\Controllers\AuthController;
-use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\ProductController;
 use App\Http\Controllers\CustomerController;
-use App\Http\Controllers\SaleController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ProductController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\SaleController;
+use App\Http\Controllers\Wso2AuthController;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return auth()->check()
@@ -17,6 +17,11 @@ Route::get('/', function () {
 });
 
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+
+Route::middleware(['guest', 'throttle:20,1'])->group(function () {
+    Route::get('/auth/wso2', [Wso2AuthController::class, 'redirect'])->name('wso2.login');
+    Route::get('/auth/wso2/callback', [Wso2AuthController::class, 'callback'])->name('wso2.callback');
+});
 
 Route::post('/login', [AuthController::class, 'login'])
     ->name('login.submit');
@@ -36,7 +41,6 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword'])
 Route::post('/logout', [AuthController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
-
 
 Route::middleware('auth')->group(function () {
 
