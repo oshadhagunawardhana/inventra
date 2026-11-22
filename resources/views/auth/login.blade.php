@@ -732,6 +732,13 @@
 
         </form>
 
+        @if (config('wso2.enabled'))
+            <div class="text-center my-3 text-muted">or</div>
+            <a href="{{ route('wso2.login') }}" class="btn btn-outline-primary login-btn w-100">
+                <i class="bi bi-shield-lock me-1"></i> Sign in with WSO2
+            </a>
+        @endif
+
 
 
         {{-- =========================
